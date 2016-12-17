@@ -77,8 +77,55 @@ local function new(class)
 	return setmetatable(class, {__call = function(c, ...)
 		local o = setmetatable({}, c)
 		o:init(...)
+
+		o.uuid = uuid()
+
 		return o
 	end})
+end
+
+local function instanceOf(a, b)
+    if a then
+
+        if #a == 0 then
+            if a.__index ~= b.__index then
+                return instanceOf(a.__index.__includes, b)
+            end
+
+            return true
+        else
+            for i = 1, #a do
+                local inc = a[i]
+
+                if inc.__index == b.__index or instanceOf(inc.__index.__includes, b) then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
+local function assign(object, options)
+    options = options or {}
+    for k, v in pairs(options) do
+        object[k] = v
+    end
+end
+
+local function shallowCopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            copy[orig_key] = orig_value
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
 end
 
 -- interface for cross class-system compatibility (see https://github.com/bartbes/Class-Commons).
@@ -94,5 +141,5 @@ end
 
 
 -- the module
-return setmetatable({new = new, include = include, clone = clone},
+return setmetatable({new = new, include = include, clone = clone, instanceOf = instanceOf, assign = assign, shallowCopy = shallowCopy},
 	{__call = function(_,...) return new(...) end})
