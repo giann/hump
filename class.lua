@@ -24,6 +24,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ]]--
 
+uuid    = require "hump.uuid"
+Serpent = require "hump.serpent"
+
 local function include_helper(to, from, seen)
 	if from == nil then
 		return to
@@ -68,10 +71,30 @@ local function new(class)
 	end
 
 	-- class implementation
-	class.__index = class
-	class.init    = class.init    or class[1] or function() end
-	class.include = class.include or include
-	class.clone   = class.clone   or clone
+    class.__uuid      = uuid()
+	class.__index     = class
+	class.init        = class.init    or class[1] or function() end
+	class.include     = class.include or include
+	class.clone       = class.clone   or clone
+    class.__serialize = function(value)
+        -- We add __deserialize function here to avoid 
+        value.__deserialize = function(instance)
+            -- Used global class if already defined to enable __index comparisons
+            -- and avoid multiple definition of the same class in memory
+            for k, v in pairs(_G) do
+                if type(v) == "table" and v.__uuid == instance.__class.__uuid then
+                    instance.__class = v
+                end
+            end
+
+            setmetatable(instance, instance.__class)
+
+            -- Can be called once
+            instance.__deserialize = nil
+        end
+
+        return value
+    end
 
 	-- constructor call
 	return setmetatable(class, {__call = function(c, ...)
@@ -80,11 +103,38 @@ local function new(class)
 
 		o.uuid = uuid()
 
+        -- Copy class from metatable for serialization
+        o.__class = o.__index
+
 		return o
 	end})
 end
 
+local function deserialize(instance)
+    if instance.__deserialize then
+        instance:__deserialize()
+    end
+
+    for k, v in pairs(instance) do
+        local v = instance[k]
+
+        if type(v) == "table" and k ~= "__class" then
+            if v.__deserialize then
+                v:__deserialize()
+            end
+
+            deserialize(v)
+        end
+    end
+
+    return instance
+end
+
 local function instanceOf(a, b)
+    -- if a and b and a.__uuid == b.__uuid then
+    --     return true
+    -- end
+
     if a then
 
         if #a == 0 then
@@ -141,5 +191,18 @@ end
 
 
 -- the module
-return setmetatable({new = new, include = include, clone = clone, instanceOf = instanceOf, assign = assign, shallowCopy = shallowCopy},
-	{__call = function(_,...) return new(...) end})
+return setmetatable({
+        new         = new,
+        include     = include,
+        clone       = clone,
+        instanceOf  = instanceOf,
+        assign      = assign,
+        shallowCopy = shallowCopy,
+        deserialize = deserialize
+    },
+	{
+        __call = function(_,...)
+            return new(...)
+        end
+    }
+)
