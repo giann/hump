@@ -26,6 +26,12 @@ for k, v in pairs(instance) do
 end
 print()
 
+print("Redefine a L function before deserialize")
+
+function L:lFn()
+    print("L specific function modified", self.uuid)
+end
+
 Class.deserialize(ser)
 
 print("After deserialize")

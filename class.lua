@@ -27,6 +27,10 @@ THE SOFTWARE.
 uuid    = require "hump.uuid"
 Serpent = require "hump.serpent"
 
+-- Must always be the same for serialization/deserialization to work
+-- Don't alter math.randomseed before you created all your classes
+uuid.randomseed(1)
+
 local function include_helper(to, from, seen)
 	if from == nil then
 		return to
@@ -77,10 +81,11 @@ local function new(class)
 	class.include     = class.include or include
 	class.clone       = class.clone   or clone
     class.__serialize = function(value)
-        -- We add __deserialize function here to avoid 
         value.__deserialize = function(instance)
             -- Used global class if already defined to enable __index comparisons
             -- and avoid multiple definition of the same class in memory
+            -- For this to work, the seed must not be altered before all the classes
+            -- have been created
             for k, v in pairs(_G) do
                 if type(v) == "table" and v.__uuid == instance.__class.__uuid then
                     instance.__class = v
@@ -91,7 +96,12 @@ local function new(class)
 
             -- Can be called once
             instance.__deserialize = nil
+            instance.__class = nil
         end
+
+        -- Copy class from metatable for serialization
+        -- TODO after the serialization, we're left with thoses __class
+        value.__class = value.__index
 
         return value
     end
@@ -102,9 +112,6 @@ local function new(class)
 		o:init(...)
 
 		o.uuid = uuid()
-
-        -- Copy class from metatable for serialization
-        o.__class = o.__index
 
 		return o
 	end})
@@ -126,7 +133,7 @@ local function deserialize(instance, deserialized)
     for k, v in pairs(instance) do
         local v = instance[k]
 
-        if type(v) == "table" and k ~= "__class" then
+        if type(v) == "table" then
             if v.__deserialize then
                 v:__deserialize()
             end
@@ -141,10 +148,6 @@ local function deserialize(instance, deserialized)
 end
 
 local function instanceOf(a, b)
-    -- if a and b and a.__uuid == b.__uuid then
-    --     return true
-    -- end
-
     if a then
 
         if #a == 0 then
