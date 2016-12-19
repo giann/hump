@@ -110,7 +110,15 @@ local function new(class)
 	end})
 end
 
-local function deserialize(instance)
+local function deserialize(instance, deserialized)
+    assert(type(instance) == "table", "deserialize first parameter must be a table")
+
+    deserialized = deserialized or {}
+
+    if instance.uuid then
+        deserialized[instance.uuid] = instance
+    end
+
     if instance.__deserialize then
         instance:__deserialize()
     end
@@ -123,7 +131,9 @@ local function deserialize(instance)
                 v:__deserialize()
             end
 
-            deserialize(v)
+            if not v.uuid or not deserialized[v.uuid] then
+                deserialize(v, deserialized)
+            end
         end
     end
 
