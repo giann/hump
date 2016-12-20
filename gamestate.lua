@@ -94,7 +94,7 @@ setmetatable(GS, {__index = function(_, func)
 	-- Those callbacks are called for every stacked states
 	if func == "draw" or func == "update" or func == "quit" then
 	 	return function(...)
-			for i = #stack, 1, -1 do
+			for i = 1, #stack do
 				(stack[i][func] or __NULL__)(stack[i], ...)
 			end
 		end
