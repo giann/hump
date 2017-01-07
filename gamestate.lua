@@ -112,6 +112,11 @@ setmetatable(GS, {__index = function(_, func)
 	if func == "draw" or func == "update" or func == "quit" then
 	 	return function(...)
 			for i = 1, #stack do
+                -- If one of those call poped a state
+                if i > #stack then
+                    break
+                end
+
 				(stack[i][func] or __NULL__)(stack[i], ...)
 			end
 		end
