@@ -1,0 +1,6 @@
+[submodule "uuid"]
+	path = uuid
+	url = https://github.com/Tieske/uuid.git
+[submodule "serpent"]
+	path = serpent
+	url = https://github.com/pkulchenko/serpent.git
