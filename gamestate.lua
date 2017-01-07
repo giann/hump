@@ -43,6 +43,7 @@ local function change_state(stack_offset, to, ...)
 	initialized_states[to] = __NULL__
 
 	stack[#stack+stack_offset] = to
+
 	return (to.enter or __NULL__)(to, pre, ...)
 end
 
@@ -69,6 +70,22 @@ end
 
 function GS.current()
 	return stack[#stack]
+end
+
+function GS.previous(state)
+    state = state or stack[#stack]
+
+    for i = #stack, 0, -1 do
+        if stack[i] == state then
+            if i > 0 then
+                return stack[i-1]
+            end
+
+            return nil
+        end
+    end
+
+    return nil
 end
 
 -- fetch event callbacks from love.handlers
