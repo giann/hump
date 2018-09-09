@@ -24,8 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ]]--
 
-uuid    = require "hump.uuid"
-Serpent = require "hump.serpent"
+local uuid = require "hump.uuid"
 
 -- Must always be the same for serialization/deserialization to work
 -- Don't alter math.randomseed before you created all your classes
@@ -86,11 +85,7 @@ local function new(class)
             -- and avoid multiple definition of the same class in memory
             -- For this to work, the seed must not be altered before all the classes
             -- have been created
-            for k, v in pairs(_G) do
-                if type(v) == "table" and v.__uuid == instance.__class.__uuid then
-                    instance.__class = v
-                end
-            end
+            instance.__class = _G.__classes[instance.__class.__uuid] or instance.__class
 
             setmetatable(instance, instance.__class)
 
@@ -105,6 +100,10 @@ local function new(class)
 
         return value
     end
+
+    -- Register class in class registry
+    _G.__classes = _G.__classes or {}
+    _G.__classes[class.__uuid] = class
 
 	-- constructor call
 	return setmetatable(class, {__call = function(c, ...)
