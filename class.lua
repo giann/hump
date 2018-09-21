@@ -24,12 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ]]--
 
-local uuid = require "hump.uuid"
-
--- Must always be the same for serialization/deserialization to work
--- Don't alter math.randomseed before you created all your classes
-uuid.randomseed(1)
-
 local function include_helper(to, from, seen)
 	if from == nil then
 		return to
@@ -74,76 +68,18 @@ local function new(class)
 	end
 
 	-- class implementation
-    class.__uuid      = uuid()
 	class.__index     = class
 	class.init        = class.init    or class[1] or function() end
 	class.include     = class.include or include
 	class.clone       = class.clone   or clone
-    class.__serialize = function(value)
-        value.__deserialize = function(instance)
-            -- Used global class if already defined to enable __index comparisons
-            -- and avoid multiple definition of the same class in memory
-            -- For this to work, the seed must not be altered before all the classes
-            -- have been created
-            instance.__class = _G.__classes[instance.__class.__uuid] or instance.__class
-
-            setmetatable(instance, instance.__class)
-
-            -- Can be called once
-            instance.__deserialize = nil
-            instance.__class = nil
-        end
-
-        -- Copy class from metatable for serialization
-        -- TODO after the serialization, we're left with thoses __class
-        value.__class = value.__index
-
-        return value
-    end
-
-    -- Register class in class registry
-    _G.__classes = _G.__classes or {}
-    _G.__classes[class.__uuid] = class
 
 	-- constructor call
 	return setmetatable(class, {__call = function(c, ...)
 		local o = setmetatable({}, c)
 		o:init(...)
 
-		o.uuid = uuid()
-
 		return o
 	end})
-end
-
-local function deserialize(instance, deserialized)
-    assert(type(instance) == "table", "deserialize first parameter must be a table")
-
-    deserialized = deserialized or {}
-
-    if instance.uuid then
-        deserialized[instance.uuid] = instance
-    end
-
-    if instance.__deserialize then
-        instance:__deserialize()
-    end
-
-    for k, v in pairs(instance) do
-        local v = instance[k]
-
-        if type(v) == "table" then
-            if v.__deserialize then
-                v:__deserialize()
-            end
-
-            if not v.uuid or not deserialized[v.uuid] then
-                deserialize(v, deserialized)
-            end
-        end
-    end
-
-    return instance
 end
 
 local function instanceOf(a, b)
@@ -190,6 +126,11 @@ local function shallowCopy(orig)
     return copy
 end
 
+local function register(class, name)
+	_G.__classes = _G.__classes or {}
+    _G.__classes[name] = class
+end
+
 -- interface for cross class-system compatibility (see https://github.com/bartbes/Class-Commons).
 if class_commons ~= false and not common then
 	common = {}
@@ -210,7 +151,7 @@ return setmetatable({
         instanceOf  = instanceOf,
         assign      = assign,
         shallowCopy = shallowCopy,
-        deserialize = deserialize
+        register    = register
     },
 	{
         __call = function(_,...)
