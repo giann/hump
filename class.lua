@@ -82,6 +82,10 @@ local function new(class)
 	end})
 end
 
+local function isInstance(o)
+	return o.init and getmetatable(o) and getmetatable(o).__index
+end
+
 local function instanceOf(a, b)
     if a then
 
@@ -149,6 +153,7 @@ return setmetatable({
         include     = include,
         clone       = clone,
         instanceOf  = instanceOf,
+        isInstance  = isInstance,
         assign      = assign,
         shallowCopy = shallowCopy,
         register    = register
