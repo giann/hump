@@ -49,9 +49,19 @@ local function include(class, other)
 	return include_helper(class, other, {})
 end
 
+local function assign(object, options)
+    options = options or {}
+    for k, v in pairs(options) do
+        object[k] = v
+    end
+end
+
 -- returns a deep copy of `other'
 local function clone(other)
-	return setmetatable(include({}, other), getmetatable(other))
+	assert(other.__index, "clone expected class instance")
+	local copy = other.__index()
+	assign(copy, other)
+	return copy
 end
 
 local function new(class)
@@ -107,13 +117,6 @@ local function instanceOf(a, b)
     end
 
     return false
-end
-
-local function assign(object, options)
-    options = options or {}
-    for k, v in pairs(options) do
-        object[k] = v
-    end
 end
 
 local function shallowCopy(orig)
