@@ -39,6 +39,7 @@ function Timer:update(dt)
 		--   during = <function>,
 		--   limit = <number>,
 		--   count = <number>,
+		--   completionw = <function>,
 		-- }
 
 		handle.time = handle.time + dt
@@ -59,12 +60,25 @@ function Timer:update(dt)
 	end
 
 	for i = 1, #to_remove do
+		local handle = to_remove[i]
+
+		local fn = handle and handle.completion or function()end
+
+		fn()
+
 		self.functions[to_remove[i]] = nil
 	end
 end
 
-function Timer:during(delay, during, after)
-	local handle = { time = 0, during = during, after = after or _nothing_, limit = delay, count = 1 }
+function Timer:during(delay, during, after, completion)
+	local handle = {
+		time = 0,
+		during = during,
+		after = after or _nothing_,
+		limit = delay,
+		count = 1,
+		completion = completion
+	}
 	self.functions[handle] = true
 	return handle
 end
@@ -73,9 +87,16 @@ function Timer:after(delay, func)
 	return self:during(delay, _nothing_, func)
 end
 
-function Timer:every(delay, after, count)
-	local count = count or math.huge -- exploit below: math.huge - 1 = math.huge
-	local handle = { time = 0, during = _nothing_, after = after, limit = delay, count = count }
+function Timer:every(delay, after, count, completion)
+	count = count or math.huge -- exploit below: math.huge - 1 = math.huge
+	local handle = {
+		time = 0,
+		during = _nothing_,
+		after = after,
+		limit = delay,
+		count = count,
+		completion = completion
+	}
 	self.functions[handle] = true
 	return handle
 end
