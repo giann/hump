@@ -48,20 +48,30 @@ local function change_state(stack_offset, to, ...)
 end
 
 function GS.switch(to, ...)
-	assert(to, "Missing argument: Gamestate to switch to")
-	assert(to ~= GS, "Can't call switch with colon operator")
+	if not to then
+        error("Missing argument: Gamestate to switch to")
+    end
+	if to == GS then
+        error("Can't call switch with colon operator")
+    end
 	;(stack[#stack].leave or __NULL__)(stack[#stack])
 	return change_state(0, to, ...)
 end
 
 function GS.push(to, ...)
-	assert(to, "Missing argument: Gamestate to switch to")
-	assert(to ~= GS, "Can't call push with colon operator")
+	if not to then
+        error("Missing argument: Gamestate to switch to")
+    end
+	if to == GS then
+        error("Can't call push with colon operator")
+    end
 	return change_state(1, to, ...)
 end
 
 function GS.pop(...)
-	assert(#stack > 1, "No more states to pop!")
+	if #stack <= 1 then
+        error("No more states to pop!")
+    end
 	local pre, to = stack[#stack], stack[#stack-1]
 	stack[#stack] = nil
 	;(pre.leave or __NULL__)(pre)
