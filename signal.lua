@@ -76,20 +76,31 @@ function Registry:clearPattern(p)
 	end
 end
 
+-- Keep track of instances
+local instances = {}
+
 -- instancing
-function Registry.new()
-	return setmetatable({}, Registry)
+function Registry.new(namespace)
+	local instance = setmetatable({}, Registry)
+	instance.namespace = namespace
+
+	instances[namespace or #instances] = instance
+
+	return instance
 end
 
 -- default instance
-local default = Registry.new()
+local default = Registry.new("default")
 
 -- module forwards calls to default instance
 local module = {}
 for k in pairs(Registry) do
-	if k ~= "__index" then
+	if k ~= "__index" and k ~= "new" then
 		module[k] = function(...) return default[k](default, ...) end
 	end
 end
+module.new = Registry.new
 
-return setmetatable(module, {__call = Registry.new})
+return setmetatable(module, {__call = function(_, namespace)
+	return instances[namespace] or Registry
+end})
